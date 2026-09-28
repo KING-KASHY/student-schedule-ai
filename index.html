@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StudentSchedule AI</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div>
+    <h1>StudentSchedule AI</h1>
+    <p>A realistic planner for busy high-school students.</p>
+  </div>
+  <button id="demo" class="secondary">Load demo</button>
+</header>
+
+<main>
+<section class="card">
+<h2>Student setup</h2>
+<div class="grid">
+<label>Wake time<input id="wake" type="time" value="06:00"></label>
+<label>Bedtime<input id="bed" type="time" value="22:30"></label>
+<label>School hours<input id="school" value="8:00 AM–3:30 PM"></label>
+<label>Available planning day
+<select id="day"><option>Today</option><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select>
+</label>
+</div>
+</section>
+
+<section class="card">
+<h2>Fixed commitments</h2>
+<p class="hint">Things that cannot move: school, practice, lessons, work, commute, etc.</p>
+<div id="commitments"></div>
+<button class="secondary" id="addCommitment">+ Add commitment</button>
+</section>
+
+<section class="card">
+<h2>Homework and tasks</h2>
+<p class="hint">Add what needs to get done. The planner decides the order.</p>
+<div id="tasks"></div>
+<button class="secondary" id="addTask">+ Add task</button>
+</section>
+
+<section class="card">
+<h2>What do you need?</h2>
+<textarea id="request" rows="4" placeholder="Example: I have 90 minutes tonight. Make a realistic plan and protect my sleep."></textarea>
+<button id="generate" class="primary">Build my schedule</button>
+</section>
+
+<section class="card">
+<h2>Your plan</h2>
+<div id="result" class="result">Add your commitments and tasks, then build your schedule.</div>
+</section>
+
+<section class="card">
+<h2>Planner chat</h2>
+<p class="hint">This free version responds to common planning requests without sending your data anywhere.</p>
+<div id="chat"></div>
+<div class="chatbar">
+<input id="chatInput" placeholder="Try: What should I do first?">
+<button id="ask" class="primary">Ask</button>
+</div>
+</section>
+
+<section class="card">
+<h2>Customize your business</h2>
+<p>Edit <code>AGENT_RULES</code> in <code>public/app.js</code> to change the planner's rules. You can turn this into an athlete planner, AP-student planner, freshman planner, or another niche.</p>
+</section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
