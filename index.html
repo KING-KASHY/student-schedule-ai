@@ -1,87 +1,32 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>StudentSchedule AI</title>
-  <meta name="description" content="A smarter student planner that adapts to school, homework, sports, activities, and sleep.">
-  <link rel="stylesheet" href="style.css?v=4">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StudentSchedule AI</title>
+<link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand"><div class="brand-mark">S</div><div><strong>StudentSchedule</strong><span>AI planner</span></div></div>
-      <nav>
-        <button class="nav-btn active" data-view="today">⌂ <span>Today</span></button>
-        <button class="nav-btn" data-view="tasks">✓ <span>Tasks</span></button>
-        <button class="nav-btn" data-view="week">▦ <span>Week</span></button>
-        <button class="nav-btn" data-view="chat">✦ <span>Planner AI</span></button>
-        <button class="nav-btn" data-view="settings">⚙ <span>Settings</span></button>
-      </nav>
-      <div class="trial-card" id="trialCard"></div>
-    </aside>
-
-    <main class="main">
-      <header class="topbar">
-        <div><div class="eyebrow" id="dateLabel"></div><h1 id="pageTitle">Today</h1></div>
-        <div class="top-actions"><button class="ghost" id="demoBtn">Try example</button><button class="ghost" id="refreshBtn">Rebuild schedule</button><button class="primary" id="addTaskTop">+ Add task</button></div>
-      </header>
-
-      <section id="view-today" class="view active">
-        <div class="hero-grid">
-          <div class="hero-card">
-            <div><span class="pill">Adaptive planning</span><h2 id="heroTitle">Your day, without the chaos.</h2><p id="heroText">Your plan changes when your priorities, commitments, or available time change.</p></div>
-            <div class="hero-stats"><div><b id="focusMinutes">0</b><span>focus min</span></div><div><b id="taskCount">0</b><span>open tasks</span></div><div><b id="freeMinutes">0</b><span>free min</span></div></div>
-          </div>
-          <div class="coach-card"><div class="coach-head"><div class="avatar">✦</div><div><strong>Planner AI</strong><span id="coachStatus">Ready to plan</span></div></div><p id="coachMessage">Tell me what changed today. I’ll adjust the schedule instead of making you start over.</p><button class="text-btn" data-view-jump="chat">Open planner →</button></div>
-        </div>
-        <div class="section-head"><div><h3>Smart schedule</h3><p>Built from deadlines, priority, duration, commitments, breaks, and your sleep window.</p></div><span class="updated" id="updatedLabel"></span></div>
-        <div id="scheduleList" class="schedule-list"></div>
-      </section>
-
-      <section id="view-tasks" class="view">
-        <div class="section-head"><div><h3>Tasks</h3><p>Add the work you actually need to get done. The planner handles the ordering.</p></div><button class="primary" id="addTaskBtn">+ Add task</button></div>
-        <div class="task-form hidden" id="taskForm">
-          <input id="taskName" placeholder="What needs to get done?">
-          <input id="taskMinutes" type="number" min="5" step="5" value="30" placeholder="Minutes">
-          <input id="taskDue" type="date">
-          <select id="taskPriority"><option value="1">Low</option><option value="2" selected>Normal</option><option value="3">High</option><option value="4">Urgent</option></select>
-          <button class="primary" id="saveTask">Add</button><button class="ghost" id="cancelTask">Cancel</button>
-        </div>
-        <div id="taskList" class="cards"></div>
-      </section>
-
-      <section id="view-week" class="view">
-        <div class="section-head"><div><h3>Week</h3><p>See workload by day and move tasks when life changes.</p></div><button class="ghost" id="weekRebuild">Rebalance week</button></div>
-        <div id="weekGrid" class="week-grid"></div>
-      </section>
-
-      <section id="view-chat" class="view">
-        <div class="chat-layout">
-          <div class="chat-panel">
-            <div class="chat-header"><div><h3>Planner AI</h3><p>Adaptive scheduling assistant</p></div><span class="online">Local</span></div>
-            <div id="chatMessages" class="chat-messages"></div>
-            <div class="suggestions"><button data-prompt="I have 45 minutes before practice. What should I do?">45 minutes free</button><button data-prompt="I have too much homework tonight. Fix my schedule.">Too much homework</button><button data-prompt="Move my unfinished work to tomorrow.">Move unfinished work</button><button data-prompt="What should I do first?">What first?</button></div>
-            <div class="chat-input"><textarea id="chatInput" rows="1" placeholder="Tell me what changed… e.g. “practice was cancelled”"></textarea><button class="primary" id="sendChat">Send</button></div>
-          </div>
-          <div class="chat-side"><h4>What it can handle</h4><ul><li>New or cancelled commitments</li><li>Changing deadlines</li><li>Not enough time tonight</li><li>Breaking large tasks into sessions</li><li>Moving unfinished work forward</li><li>Finding the next best task</li></ul><div class="tip"><b>Tip</b><p>Use normal language. The planner reads your message for times, durations, task names, deadlines, and changes.</p></div></div>
-        </div>
-      </section>
-
-      <section id="view-settings" class="view">
-        <div class="section-head"><div><h3>Settings</h3><p>These preferences change how the scheduler plans your time.</p></div><button class="primary" id="saveSettings">Save</button></div>
-        <div class="settings-grid">
-          <label>Wake time<input id="wakeTime" type="time"></label><label>Bedtime<input id="bedTime" type="time"></label><label>School starts<input id="schoolStart" type="time"></label><label>School ends<input id="schoolEnd" type="time"></label>
-          <label>Planning day<select id="planningDay"><option value="today">Today</option><option value="tomorrow">Tomorrow</option></select></label>
-        </div>
-        <div class="section-head small"><div><h3>Fixed commitments</h3><p>Practice, clubs, work, lessons, family events, etc.</p></div><button class="ghost" id="addCommitment">+ Add</button></div>
-        <div id="commitmentList" class="cards"></div>
-      </section>
-    </main>
-  </div>
-
-  <div class="modal hidden" id="trialModal"><div class="modal-card"><button class="close" id="closeTrial">×</button><span class="pill" id="trialModalPill">3-day Pro trial</span><h2 id="trialModalTitle">Try Pro free for 3 days</h2><p id="trialModalText">Use the full adaptive planner for 3 days. No payment is requested during the trial. When the trial ends, you can choose whether to continue for $3/month.</p><div class="price"><strong>$3</strong><span>/ month after trial</span></div><button class="primary wide" id="startTrialBtn">Start 3-day free trial</button><button class="ghost wide hidden" id="upgradeBtn">Continue with Pro</button><button class="ghost wide" id="keepFreeBtn">Stay on Free</button><small>Checkout is handled by your payment provider. A secure paid subscription requires a payment link and, for full verification, a backend.</small></div></div>
-  <div class="toast" id="toast"></div>
-  <script src="app.js?v=4"></script>
-</body>
-</html>
+<div class="app">
+<aside class="sidebar">
+  <div class="brand">StudentSchedule <span>AI</span></div>
+  <button class="nav active" data-page="today">Today</button>
+  <button class="nav" data-page="calendar">Calendar</button>
+  <button class="nav" data-page="tasks">Tasks</button>
+  <button class="nav" data-page="week">Week</button>
+  <button class="nav" data-page="planner">Planner AI</button>
+  <button class="nav" data-page="settings">Settings</button>
+  <div class="trial"><b>3-Day Pro Trial</b><p id="trialText">Try all Pro planning features.</p><button id="trialBtn">Start Free Trial</button></div>
+</aside>
+<main>
+<header><div><h1 id="title">Today</h1><p id="subtitle">Your plan, without the guesswork.</p></div><button class="primary" id="quickAdd">+ Add task</button></header>
+<section id="page"></section>
+</main>
+</div>
+<div id="modal" class="modal hidden"><div class="modalbox"><h2>Add task</h2>
+<input id="taskName" placeholder="What do you need to do?">
+<div class="row"><input id="taskDue" type="date"><input id="taskMinutes" type="number" min="5" value="30" placeholder="Minutes"></div>
+<select id="taskPriority"><option value="3">High priority</option><option value="2" selected>Normal</option><option value="1">Low priority</option></select>
+<div class="actions"><button id="cancel">Cancel</button><button class="primary" id="saveTask">Add</button></div></div></div>
+<script src="app.js?v=3"></script>
+</body></html>
