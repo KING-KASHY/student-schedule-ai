@@ -27,7 +27,7 @@ function maybeTrialModal(){if(trial().expired&&!state.trialChoice){$('#trialModa
 function init(){
   if(!state.tasks.length){
     const d=todayISO();state.tasks=[{id:uid(),name:'Math homework',minutes:45,due:d,priority:3},{id:uid(),name:'Science reading',minutes:30,due:d,priority:2},{id:uid(),name:'English assignment',minutes:40,due:addDays(d,1),priority:2}];
-    state.commitments=[{id:uid(),name:'Soccer practice',day:new Date().getDay(),start:'17:00',end:'18:30'}];save();
+    state.commitments=[{id:uid(),name:'Soccer practice',day:new Date().getDay(),start:'17:00',end:'18:30}];save();
   }
   bind(); render(); updateTrial();
   if(!state.lastBuilt) buildSchedule();
