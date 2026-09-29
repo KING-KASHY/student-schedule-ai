@@ -1,73 +1,87 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>StudentSchedule AI</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StudentSchedule AI</title>
+  <meta name="description" content="A smarter student planner that adapts to school, homework, sports, activities, and sleep.">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <div>
-    <h1>StudentSchedule AI</h1>
-    <p>A realistic planner for busy high-school students.</p>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">S</div><div><strong>StudentSchedule</strong><span>AI planner</span></div></div>
+      <nav>
+        <button class="nav-btn active" data-view="today">⌂ <span>Today</span></button>
+        <button class="nav-btn" data-view="tasks">✓ <span>Tasks</span></button>
+        <button class="nav-btn" data-view="week">▦ <span>Week</span></button>
+        <button class="nav-btn" data-view="chat">✦ <span>Planner AI</span></button>
+        <button class="nav-btn" data-view="settings">⚙ <span>Settings</span></button>
+      </nav>
+      <div class="trial-card" id="trialCard"></div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div><div class="eyebrow" id="dateLabel"></div><h1 id="pageTitle">Today</h1></div>
+        <div class="top-actions"><button class="ghost" id="demoBtn">Try example</button><button class="ghost" id="refreshBtn">Rebuild schedule</button><button class="primary" id="addTaskTop">+ Add task</button></div>
+      </header>
+
+      <section id="view-today" class="view active">
+        <div class="hero-grid">
+          <div class="hero-card">
+            <div><span class="pill">Adaptive planning</span><h2 id="heroTitle">Your day, without the chaos.</h2><p id="heroText">Your plan changes when your priorities, commitments, or available time change.</p></div>
+            <div class="hero-stats"><div><b id="focusMinutes">0</b><span>focus min</span></div><div><b id="taskCount">0</b><span>open tasks</span></div><div><b id="freeMinutes">0</b><span>free min</span></div></div>
+          </div>
+          <div class="coach-card"><div class="coach-head"><div class="avatar">✦</div><div><strong>Planner AI</strong><span id="coachStatus">Ready to plan</span></div></div><p id="coachMessage">Tell me what changed today. I’ll adjust the schedule instead of making you start over.</p><button class="text-btn" data-view-jump="chat">Open planner →</button></div>
+        </div>
+        <div class="section-head"><div><h3>Smart schedule</h3><p>Built from deadlines, priority, duration, commitments, breaks, and your sleep window.</p></div><span class="updated" id="updatedLabel"></span></div>
+        <div id="scheduleList" class="schedule-list"></div>
+      </section>
+
+      <section id="view-tasks" class="view">
+        <div class="section-head"><div><h3>Tasks</h3><p>Add the work you actually need to get done. The planner handles the ordering.</p></div><button class="primary" id="addTaskBtn">+ Add task</button></div>
+        <div class="task-form hidden" id="taskForm">
+          <input id="taskName" placeholder="What needs to get done?">
+          <input id="taskMinutes" type="number" min="5" step="5" value="30" placeholder="Minutes">
+          <input id="taskDue" type="date">
+          <select id="taskPriority"><option value="1">Low</option><option value="2" selected>Normal</option><option value="3">High</option><option value="4">Urgent</option></select>
+          <button class="primary" id="saveTask">Add</button><button class="ghost" id="cancelTask">Cancel</button>
+        </div>
+        <div id="taskList" class="cards"></div>
+      </section>
+
+      <section id="view-week" class="view">
+        <div class="section-head"><div><h3>Week</h3><p>See workload by day and move tasks when life changes.</p></div><button class="ghost" id="weekRebuild">Rebalance week</button></div>
+        <div id="weekGrid" class="week-grid"></div>
+      </section>
+
+      <section id="view-chat" class="view">
+        <div class="chat-layout">
+          <div class="chat-panel">
+            <div class="chat-header"><div><h3>Planner AI</h3><p>Adaptive scheduling assistant</p></div><span class="online">Local</span></div>
+            <div id="chatMessages" class="chat-messages"></div>
+            <div class="suggestions"><button data-prompt="I have 45 minutes before practice. What should I do?">45 minutes free</button><button data-prompt="I have too much homework tonight. Fix my schedule.">Too much homework</button><button data-prompt="Move my unfinished work to tomorrow.">Move unfinished work</button><button data-prompt="What should I do first?">What first?</button></div>
+            <div class="chat-input"><textarea id="chatInput" rows="1" placeholder="Tell me what changed… e.g. “practice was cancelled”"></textarea><button class="primary" id="sendChat">Send</button></div>
+          </div>
+          <div class="chat-side"><h4>What it can handle</h4><ul><li>New or cancelled commitments</li><li>Changing deadlines</li><li>Not enough time tonight</li><li>Breaking large tasks into sessions</li><li>Moving unfinished work forward</li><li>Finding the next best task</li></ul><div class="tip"><b>Tip</b><p>Use normal language. The planner reads your message for times, durations, task names, deadlines, and changes.</p></div></div>
+        </div>
+      </section>
+
+      <section id="view-settings" class="view">
+        <div class="section-head"><div><h3>Settings</h3><p>These preferences change how the scheduler plans your time.</p></div><button class="primary" id="saveSettings">Save</button></div>
+        <div class="settings-grid">
+          <label>Wake time<input id="wakeTime" type="time"></label><label>Bedtime<input id="bedTime" type="time"></label><label>School starts<input id="schoolStart" type="time"></label><label>School ends<input id="schoolEnd" type="time"></label>
+          <label>Planning day<select id="planningDay"><option value="today">Today</option><option value="tomorrow">Tomorrow</option></select></label>
+        </div>
+        <div class="section-head small"><div><h3>Fixed commitments</h3><p>Practice, clubs, work, lessons, family events, etc.</p></div><button class="ghost" id="addCommitment">+ Add</button></div>
+        <div id="commitmentList" class="cards"></div>
+      </section>
+    </main>
   </div>
-  <button id="demo" class="secondary">Load demo</button>
-</header>
 
-<main>
-<section class="card">
-<h2>Student setup</h2>
-<div class="grid">
-<label>Wake time<input id="wake" type="time" value="06:00"></label>
-<label>Bedtime<input id="bed" type="time" value="22:30"></label>
-<label>School hours<input id="school" value="8:00 AM–3:30 PM"></label>
-<label>Available planning day
-<select id="day"><option>Today</option><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select>
-</label>
-</div>
-</section>
-
-<section class="card">
-<h2>Fixed commitments</h2>
-<p class="hint">Things that cannot move: school, practice, lessons, work, commute, etc.</p>
-<div id="commitments"></div>
-<button class="secondary" id="addCommitment">+ Add commitment</button>
-</section>
-
-<section class="card">
-<h2>Homework and tasks</h2>
-<p class="hint">Add what needs to get done. The planner decides the order.</p>
-<div id="tasks"></div>
-<button class="secondary" id="addTask">+ Add task</button>
-</section>
-
-<section class="card">
-<h2>What do you need?</h2>
-<textarea id="request" rows="4" placeholder="Example: I have 90 minutes tonight. Make a realistic plan and protect my sleep."></textarea>
-<button id="generate" class="primary">Build my schedule</button>
-</section>
-
-<section class="card">
-<h2>Your plan</h2>
-<div id="result" class="result">Add your commitments and tasks, then build your schedule.</div>
-</section>
-
-<section class="card">
-<h2>Planner chat</h2>
-<p class="hint">This free version responds to common planning requests without sending your data anywhere.</p>
-<div id="chat"></div>
-<div class="chatbar">
-<input id="chatInput" placeholder="Try: What should I do first?">
-<button id="ask" class="primary">Ask</button>
-</div>
-</section>
-
-<section class="card">
-<h2>Customize your business</h2>
-<p>Edit <code>AGENT_RULES</code> in <code>public/app.js</code> to change the planner's rules. You can turn this into an athlete planner, AP-student planner, freshman planner, or another niche.</p>
-</section>
-</main>
-<script src="app.js"></script>
+  <div class="modal hidden" id="trialModal"><div class="modal-card"><button class="close" id="closeTrial">×</button><span class="pill">3-day trial complete</span><h2>Keep using StudentSchedule AI?</h2><p>Your trial has ended. Continue with Pro to keep adaptive planning, weekly planning, and the full Planner AI.</p><div class="price"><strong>$3</strong><span>/ month</span></div><button class="primary wide" id="upgradeBtn">Continue to Pro</button><button class="ghost wide" id="keepFreeBtn">Stay on Free</button><small>Payment is handled through your payment provider. This demo stores trial status locally; secure subscription verification requires a backend.</small></div></div>
+  <div class="toast" id="toast"></div>
+  <script src="app.js"></script>
 </body>
 </html>
