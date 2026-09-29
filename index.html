@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>StudentSchedule AI</title>
   <meta name="description" content="A smarter student planner that adapts to school, homework, sports, activities, and sleep.">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <div class="app-shell">
@@ -80,8 +80,8 @@
     </main>
   </div>
 
-  <div class="modal hidden" id="trialModal"><div class="modal-card"><button class="close" id="closeTrial">×</button><span class="pill">3-day trial complete</span><h2>Keep using StudentSchedule AI?</h2><p>Your trial has ended. Continue with Pro to keep adaptive planning, weekly planning, and the full Planner AI.</p><div class="price"><strong>$3</strong><span>/ month</span></div><button class="primary wide" id="upgradeBtn">Continue to Pro</button><button class="ghost wide" id="keepFreeBtn">Stay on Free</button><small>Payment is handled through your payment provider. This demo stores trial status locally; secure subscription verification requires a backend.</small></div></div>
+  <div class="modal hidden" id="trialModal"><div class="modal-card"><button class="close" id="closeTrial">×</button><span class="pill" id="trialModalPill">3-day Pro trial</span><h2 id="trialModalTitle">Try Pro free for 3 days</h2><p id="trialModalText">Use the full adaptive planner for 3 days. No payment is requested during the trial. When the trial ends, you can choose whether to continue for $3/month.</p><div class="price"><strong>$3</strong><span>/ month after trial</span></div><button class="primary wide" id="startTrialBtn">Start 3-day free trial</button><button class="ghost wide hidden" id="upgradeBtn">Continue with Pro</button><button class="ghost wide" id="keepFreeBtn">Stay on Free</button><small>Checkout is handled by your payment provider. A secure paid subscription requires a payment link and, for full verification, a backend.</small></div></div>
   <div class="toast" id="toast"></div>
-  <script src="app.js"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>

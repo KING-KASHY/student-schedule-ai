@@ -1,9 +1,9 @@
 /* StudentSchedule AI — browser-only adaptive planner.
    No API key required. The assistant is a local reasoning engine, not a cloud LLM.
    A secure paid version should move subscription verification to a server. */
-const KEY='ssa_adaptive_v3';
+const KEY='ssa_adaptive_v5';
 const DAY=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const defaults={settings:{wake:'06:00',bed:'22:30',schoolStart:'08:00',schoolEnd:'15:30'},tasks:[],commitments:[],completed:[],createdAt:Date.now(),lastBuilt:null,trialChoice:null};
+const defaults={settings:{wake:'06:00',bed:'22:30',schoolStart:'08:00',schoolEnd:'15:30'},tasks:[],commitments:[],completed:[],createdAt:Date.now(),lastBuilt:null,trialChoice:null,trialStartedAt:null};
 let state=load();
 
 function load(){try{return {...defaults,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch{return structuredClone(defaults)}}
@@ -20,20 +20,51 @@ function esc(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;',
 const $=s=>document.querySelector(s); const $$=s=>[...document.querySelectorAll(s)];
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2200)}
 
-function trial(){const age=Date.now()-state.createdAt;const days=Math.floor(age/86400000);return {days,left:Math.max(0,3-days),expired:days>=3}}
-function updateTrial(){const t=trial();$('#trialCard').innerHTML=t.expired?'<strong>Trial ended</strong>Continue with Pro for the full adaptive planner.':`<strong>${t.left} day${t.left===1?'':'s'} left</strong>Your 3-day trial includes the full planner.`}
-function maybeTrialModal(){if(trial().expired&&!state.trialChoice){$('#trialModal').classList.remove('hidden')}}
+function trial(){
+  if(!state.trialStartedAt) return {started:false,days:0,left:3,expired:false};
+  const days=(Date.now()-Number(state.trialStartedAt))/86400000;
+  return {started:true,days,left:Math.max(0,Math.ceil(3-days)),expired:days>=3};
+}
+function isPro(){const t=trial(); return !t.expired && t.started;}
+function updateTrial(){
+  const t=trial(); const card=$('#trialCard'); if(!card)return;
+  if(!t.started){card.innerHTML='<strong>Free plan</strong>Start your 3-day Pro trial to unlock the full adaptive planner.<button class="trial-cta" id="startTrialSide">Start free trial</button>'; $('#startTrialSide')?.addEventListener('click',startTrial); return;}
+  if(t.expired){card.innerHTML='<strong>Trial ended</strong>Your Pro trial is over.<button class="trial-cta" id="upgradeSide">Continue with Pro · $3/mo</button>'; $('#upgradeSide')?.addEventListener('click',showUpgradeModal); return;}
+  card.innerHTML=`<strong>${t.left} day${t.left===1?'':'s'} left</strong>Your 3-day Pro trial includes the full planner.<button class="trial-cta" id="upgradeSide">View Pro</button>`; $('#upgradeSide')?.addEventListener('click',showUpgradeModal);
+}
+function showStartTrialModal(){const m=$('#trialModal'); if(!m)return; $('#trialModalPill').textContent='3-day Pro trial'; $('#trialModalTitle').textContent='Try Pro free for 3 days'; $('#trialModalText').textContent='Use the full adaptive planner for 3 days. No payment is requested during the trial. When the trial ends, you can choose whether to continue for $3/month.'; $('#startTrialBtn').classList.remove('hidden'); $('#upgradeBtn').classList.add('hidden'); $('#keepFreeBtn').classList.remove('hidden'); m.classList.remove('hidden');}
+function showUpgradeModal(){const m=$('#trialModal'); if(!m)return; $('#trialModalPill').textContent='Pro plan'; $('#trialModalTitle').textContent='Continue with StudentSchedule AI Pro'; $('#trialModalText').textContent='Your trial has ended. Continue with adaptive planning, weekly planning, and the full Planner AI for $3/month.'; $('#startTrialBtn').classList.add('hidden'); $('#upgradeBtn').classList.remove('hidden'); $('#keepFreeBtn').classList.remove('hidden'); m.classList.remove('hidden');}
+function startTrial(){state.trialStartedAt=Date.now();state.trialChoice=null;save();$('#trialModal')?.classList.add('hidden');updateTrial();toast('Your 3-day Pro trial has started.');}
+function maybeTrialModal(){const t=trial(); if(!t.started){setTimeout(showStartTrialModal,500); return;} if(t.expired&&!state.trialChoice)setTimeout(showUpgradeModal,500);}
 
 function init(){
-  if(!state.tasks.length){
-    const d=todayISO();state.tasks=[{id:uid(),name:'Math homework',minutes:45,due:d,priority:3},{id:uid(),name:'Science reading',minutes:30,due:d,priority:2},{id:uid(),name:'English assignment',minutes:40,due:addDays(d,1),priority:2}];
-    state.commitments=[{id:uid(),name:'Soccer practice',day:new Date().getDay(),start:'17:00',end:'18:30'}];save();
+  try {
+    if(!state.tasks.length){
+      const d=todayISO();
+      state.tasks=[
+        {id:uid(),name:'Math homework',minutes:45,due:d,priority:3},
+        {id:uid(),name:'Science reading',minutes:30,due:d,priority:2},
+        {id:uid(),name:'English assignment',minutes:40,due:addDays(d,1),priority:2}
+      ];
+      state.commitments=[{id:uid(),name:'Soccer practice',day:new Date().getDay(),start:'17:00',end:'18:30'}];
+      save();
+    }
+    bind();
+    buildSchedule();
+    render();
+    updateTrial();
+    setTimeout(maybeTrialModal,400);
+    addChat('ai',`I can actually change your plan. Try “I have soccer at 6 PM today”, “math is finished”, “move science to tomorrow”, or “I only have 45 minutes tonight.” I’ll update the schedule and explain what changed.`);
+  } catch(err) {
+    console.error('StudentSchedule startup error:',err);
+    const box=$('#chatMessages');
+    if(box){
+      const d=document.createElement('div'); d.className='msg ai';
+      d.textContent='The planner loaded, but something went wrong during startup. Refresh the page once.'; box.appendChild(d);
+    }
   }
-  bind(); render(); updateTrial();
-  if(!state.lastBuilt) buildSchedule();
-  setTimeout(maybeTrialModal,400);
-  addChat('ai',`I’m your planner. I don’t just answer questions—I can change the plan when your day changes. Try: “practice was cancelled” or “I have 40 minutes before practice.”`);
 }
+
 function loadUsefulDemo(){
   if(!confirm('Load a realistic example day? This replaces your current tasks and commitments.')) return;
   const d=todayISO(), day=new Date(d+'T12:00:00').getDay();
@@ -54,15 +85,30 @@ function loadUsefulDemo(){
 }
 
 function bind(){
-  $('#demoBtn').onclick=loadUsefulDemo;
-  $$('.nav-btn').forEach(b=>b.onclick=()=>showView(b.dataset.view));
-  $$('[data-view-jump]').forEach(b=>b.onclick=()=>showView(b.dataset.viewJump));
-  $('#addTaskBtn').onclick=()=>$('#taskForm').classList.remove('hidden');$('#addTaskTop').onclick=()=>{showView('tasks');$('#taskForm').classList.remove('hidden');$('#taskName').focus()};$('#cancelTask').onclick=()=>$('#taskForm').classList.add('hidden');$('#saveTask').onclick=saveTask;
-  $('#refreshBtn').onclick=()=>{buildSchedule();toast('Schedule rebuilt around your current data.')};$('#weekRebuild').onclick=()=>{buildSchedule();render();toast('Week rebalanced.')};
-  $('#sendChat').onclick=sendChat;$('#chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat()}});$$('.suggestions button').forEach(b=>b.onclick=()=>{ $('#chatInput').value=b.dataset.prompt;sendChat()});
-  $('#saveSettings').onclick=saveSettings;$('#addCommitment').onclick=addCommitment;
-  $('#closeTrial').onclick=()=>$('#trialModal').classList.add('hidden');$('#keepFreeBtn').onclick=()=>{state.trialChoice='free';save();$('#trialModal').classList.add('hidden');toast('You can keep using the free version.')};$('#upgradeBtn').onclick=()=>{toast('Add your Stripe Payment Link in app.js to activate checkout.');};
+  const on=(sel,event,fn)=>{const el=$(sel); if(el) el.addEventListener(event,fn);};
+  on('#demoBtn','click',loadUsefulDemo);
+  $$('.nav-btn').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
+  $$('[data-view-jump]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.viewJump)));
+  on('#addTaskBtn','click',()=>$('#taskForm')?.classList.remove('hidden'));
+  on('#addTaskTop','click',()=>{showView('tasks');$('#taskForm')?.classList.remove('hidden');$('#taskName')?.focus()});
+  on('#cancelTask','click',()=>$('#taskForm')?.classList.add('hidden'));
+  on('#saveTask','click',saveTask);
+  on('#refreshBtn','click',()=>{buildSchedule();render();toast('Schedule rebuilt around your current data.')});
+  on('#weekRebuild','click',()=>{buildSchedule();render();toast('Week rebalanced.')});
+  on('#sendChat','click',sendChat);
+  on('#chatInput','keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat()}});
+  $$('.suggestions button').forEach(b=>b.addEventListener('click',()=>{ $('#chatInput').value=b.dataset.prompt;sendChat()}));
+  on('#saveSettings','click',saveSettings);
+  on('#addCommitment','click',addCommitment);
+  on('#closeTrial','click',()=>$('#trialModal')?.classList.add('hidden'));
+  on('#startTrialBtn','click',startTrial);
+  on('#upgradeBtn','click',()=>{
+    const url=window.PAYMENT_LINK||'';
+    if(url) window.location.href=url; else toast('Your Pro payment link is not connected yet.');
+  });
+  on('#keepFreeBtn','click',()=>{state.trialChoice='free';save();$('#trialModal')?.classList.add('hidden');updateTrial();toast('You can keep using the free version.');});
 }
+
 function showView(v){$$('.view').forEach(x=>x.classList.remove('active'));$('#view-'+v).classList.add('active');$$('.nav-btn').forEach(x=>x.classList.toggle('active',x.dataset.view===v));$('#pageTitle').textContent={today:'Today',tasks:'Tasks',week:'Week',chat:'Planner AI',settings:'Settings'}[v]}
 
 function saveTask(){const name=$('#taskName').value.trim();if(!name)return;state.tasks.push({id:uid(),name,minutes:Math.max(5,Number($('#taskMinutes').value)||30),due:$('#taskDue').value||todayISO(),priority:Number($('#taskPriority').value)});save();['taskName','taskDue'].forEach(x=>$('#'+x).value='');$('#taskForm').classList.add('hidden');buildSchedule();render();toast('Task added and schedule updated.')}
@@ -118,19 +164,77 @@ window.completeTask=id=>{state.completed.push(id);save();buildSchedule();render(
 
 function addChat(who,text){const box=$('#chatMessages');const d=document.createElement('div');d.className='msg '+who;d.textContent=text;box.appendChild(d);box.scrollTop=box.scrollHeight}
 function sendChat(){const input=$('#chatInput'),msg=input.value.trim();if(!msg)return;input.value='';addChat('user',msg);setTimeout(()=>{const reply=reason(msg);addChat('ai',reply)},150)}
-function reason(raw){const m=raw.toLowerCase();let changed=false;
-  // Detect common schedule changes and apply them to local state.
-  if(/cancel(led)?|no (practice|class)|practice.*cancel/.test(m)){const c=state.commitments.find(c=>/practice|class|club/i.test(c.name));if(c){state.commitments=state.commitments.filter(x=>x.id!==c.id);changed=true;}}
-  const moveMatch=m.match(/move (.+?) to (tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/);if(moveMatch){const needle=moveMatch[1].trim();const t=state.tasks.find(t=>t.name.toLowerCase().includes(needle));if(t){const names=['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];const target=names.indexOf(moveMatch[2]);let d=new Date();let diff=(target-d.getDay()+7)%7;if(diff===0)diff=7;t.due=addDays(todayISO(),diff);changed=true;}}
-  const minMatch=m.match(/(\d{1,3})\s*(?:minutes?|mins?)/);if(/free|before|have/.test(m)&&minMatch){const n=Number(minMatch[1]);const next=nextBestTask(n);if(next)return `You have about ${n} minutes. I’d use it for “${next.name}” (${Math.min(n,next.minutes)} min). It is currently one of the highest-value tasks based on deadline and priority.`}
-  if(/what should i do first|next|priority|start/.test(m)){const t=nextBestTask(999);if(t)return `Start with “${t.name}” — ${t.minutes} min, due ${fmtDate(t.due)}. It has the highest current planning score. I’ll move the other work around it.`}
-  if(/too much|overwhelmed|not enough time|can't finish|cannot finish/.test(m)){const open=state.tasks.filter(t=>!state.completed.includes(t.id)).sort((a,b)=>taskScore(b,todayISO())-taskScore(a,todayISO()));const total=open.reduce((a,t)=>a+t.minutes,0),free=availableWindows(todayISO()).reduce((a,x)=>a+x.end-x.start,0);return `You have ${total} minutes of open work and about ${free} minutes of usable time today. I would protect the most urgent work first, then push lower-priority work forward rather than filling your whole evening. Rebuild the schedule and I’ll rebalance it.`}
-  if(/unfinished|move.*tomorrow|tomorrow/.test(m)){const tomorrow=addDays(todayISO(),1);state.tasks.filter(t=>!state.completed.includes(t.id)&&t.due===todayISO()).forEach(t=>t.due=tomorrow);changed=true}
-  if(changed){save();buildSchedule();render();return 'I changed the plan based on that update. I removed or moved the affected item and rebuilt the schedule around the remaining deadlines.'}
-  if(/how.*work|how.*plan/.test(m))return 'I score each open task using urgency, deadline, priority, duration, and whether it is overdue. I then place work only inside your available windows, avoiding school and fixed commitments. Larger tasks can be split into focus blocks with breaks.';
-  if(/schedule|plan/.test(m)){buildSchedule();render();return 'I rebuilt your schedule from the current tasks, deadlines, commitments, school hours, and sleep window. Open Today to see the updated blocks.'}
-  return 'I can adapt the schedule when you tell me what changed. For example: “practice was cancelled,” “I have 30 minutes before soccer,” “move science to tomorrow,” or “I have too much homework tonight.”';
+function parseTime(text){
+  const m=text.match(/\b(1[0-2]|0?[1-9])(?::([0-5]\d))?\s*(am|pm)\b/i); if(!m)return null;
+  let h=Number(m[1]), min=Number(m[2]||0); const ap=m[3].toLowerCase(); if(ap==='pm'&&h!==12)h+=12; if(ap==='am'&&h===12)h=0; return h*60+min;
+}
+function addMinutesToTime(start,duration){return hm(start+duration)}
+function findTask(text){const clean=text.toLowerCase(); return state.tasks.find(t=>clean.includes(t.name.toLowerCase())) || state.tasks.find(t=>{const words=t.name.toLowerCase().split(/\s+/).filter(w=>w.length>3);return words.some(w=>clean.includes(w))});}
+function findCommitment(text){const clean=text.toLowerCase();return state.commitments.find(c=>clean.includes(c.name.toLowerCase()) || (c.name.length>3 && clean.includes(c.name.toLowerCase().split(/\s+/)[0])));}
+function reason(raw){
+  const m=raw.toLowerCase().trim(); let changed=false; let response='';
+  const today=todayISO();
+
+  // Mark work complete.
+  if(/\b(done|finished|completed|complete)\b/.test(m)){
+    const t=findTask(m); if(t){ if(!state.completed.includes(t.id)) state.completed.push(t.id); changed=true; response=`Marked “${t.name}” complete and rebuilt the schedule around the work that remains.`; }
+  }
+
+  // Cancel a commitment such as soccer/practice/class.
+  if(!response && /\b(cancel|cancelled|canceled|no longer)\b/.test(m)){
+    const c=findCommitment(m) || state.commitments.find(c=>/practice|soccer|club|class/i.test(c.name)&&m.includes(c.name.split(/\s+/)[0].toLowerCase()));
+    if(c){state.commitments=state.commitments.filter(x=>x.id!==c.id);changed=true;response=`Removed “${c.name}” from your commitments and rebuilt the schedule.`;}
+  }
+
+  // Add a real-time commitment: “I have soccer at 6 PM today”, optionally with a duration.
+  if(!response && /\b(i have|there is|add|schedule|put)\b/.test(m)){
+    const time=parseTime(m); const durMatch=m.match(/(?:for|lasting)\s+(\d+(?:\.\d+)?)\s*(minutes?|mins?|hours?|hrs?)/i);
+    if(time && /\b(soccer|practice|training|club|class|lesson|meeting|work|game|appointment)\b/i.test(m)){
+      let dur=90; if(durMatch){dur=Number(durMatch[1])*(/hour|hr/.test(durMatch[2].toLowerCase())?60:1)}
+      const dayOffset=/tomorrow/.test(m)?1:0; const target=new Date(today+'T12:00:00'); target.setDate(target.getDate()+dayOffset); const day=target.getDay();
+      let name='Commitment'; const n=m.match(/(?:i have|there is|add|schedule|put)\s+(.+?)\s+(?:at|from)\s+/i); if(n)name=n[1].trim().replace(/\btoday\b|\btomorrow\b/gi,'').trim();
+      state.commitments.push({id:uid(),name:name||'Commitment',day,start:hm(time),end:addMinutesToTime(time,dur)}); changed=true; response=`Added “${name||'Commitment'}” at ${prettyTime(time)} for about ${dur} minutes and rebuilt your schedule around it.`;
+    }
+  }
+
+  // Move a named task to another day.
+  if(!response){
+    const move=m.match(/\bmove\s+(.+?)\s+to\s+(tomorrow|next week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i);
+    if(move){const t=findTask(move[1]); if(t){let target=move[2].toLowerCase(); if(target==='tomorrow')t.due=addDays(today,1); else if(target==='next week')t.due=addDays(today,7); else {const names=['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];let diff=(names.indexOf(target)-new Date().getDay()+7)%7;if(diff===0)diff=7;t.due=addDays(today,diff);} changed=true;response=`Moved “${t.name}” to ${fmtDate(t.due)} and rebuilt the schedule.`;}}
+  }
+  if(!response && /\bmove (everything|all|all my work) (to )?next week\b/.test(m)){
+    state.tasks.filter(t=>!state.completed.includes(t.id)).forEach(t=>t.due=addDays(t.due,7)); changed=true; response='I moved all unfinished tasks one week later and rebuilt the schedule. Fixed commitments were left unchanged.';
+  }
+
+  // Create a task from natural language.
+  if(!response && /\b(add|create|remember|i need to|i have to)\b/.test(m)){
+    const dur=m.match(/(\d+)\s*(minutes?|mins?|hours?|hrs?)/i); const timeNeeded=dur?Number(dur[1])*(/hour|hr/.test(dur[2].toLowerCase())?60:1):30;
+    const due=/tomorrow/.test(m)?addDays(today,1):/next week/.test(m)?addDays(today,7):today;
+    let name=m.replace(/\b(add|create|remember|i need to|i have to)\b/,'').replace(/\bfor\s+\d+\s*(minutes?|mins?|hours?|hrs?)\b/,'').replace(/\bby\s+(tomorrow|today|next week)\b/,'').trim();
+    if(name.length>2 && !/soccer|practice|training|club|class|lesson|meeting/i.test(name)){state.tasks.push({id:uid(),name:name.charAt(0).toUpperCase()+name.slice(1),minutes:timeNeeded,due,priority:/urgent|asap|important/i.test(m)?3:2});changed=true;response=`Added “${state.tasks[state.tasks.length-1].name}” as a ${timeNeeded}-minute task and rebuilt the schedule.`;}
+  }
+
+  // “I only have 45 minutes tonight” / “before soccer”.
+  const minMatch=m.match(/(\d{1,3})\s*(?:minutes?|mins?)/); if(!response && minMatch && /\b(free|before|only have|have)\b/.test(m)){const n=Number(minMatch[1]);const next=nextBestTask(n); if(next)return `You have about ${n} minutes. I would use it for “${next.name}” (${Math.min(n,next.minutes)} min). It is currently the highest-value task based on deadline and priority. I can rebuild the schedule around that time block.`;}
+
+  if(!response && /\b(what should i do first|what do i do first|next|priority|start)\b/.test(m)){const t=nextBestTask(999);if(t)return `Start with “${t.name}” — ${t.minutes} minutes, due ${fmtDate(t.due)}. It has the highest current planning score because of its deadline and priority.`;}
+  if(!response && /\b(too much|overwhelmed|not enough time|can't finish|cannot finish)\b/.test(m)){const open=state.tasks.filter(t=>!state.completed.includes(t.id));const total=open.reduce((a,t)=>a+t.minutes,0),free=availableWindows(today).reduce((a,x)=>a+x.end-x.start,0);buildSchedule();render();return `You have ${total} minutes of open work and about ${free} minutes of usable time today. I rebuilt the plan to protect the most urgent work first and push lower-priority work later.`;}
+  if(!response && /\b(unfinished|move.*tomorrow|push.*tomorrow)\b/.test(m)){const tomorrow=addDays(today,1);state.tasks.filter(t=>!state.completed.includes(t.id)&&t.due===today).forEach(t=>t.due=tomorrow);changed=true;response='I moved today’s unfinished tasks to tomorrow and rebuilt the schedule.';}
+  if(changed){save();buildSchedule();render();return response||'I updated the plan and rebuilt your schedule.';}
+  if(/\b(how.*work|how.*plan|why)\b/.test(m))return 'I use your open tasks, deadlines, priority, task length, school hours, sleep window, and fixed commitments. When you tell me something changed, I update the underlying data first and then rebuild the schedule instead of just giving you a generic answer.';
+  if(/\b(schedule|plan|rebuild|replan)\b/.test(m)){buildSchedule();render();return 'I rebuilt your schedule using your current tasks, deadlines, commitments, school hours, and sleep window.';}
+  return 'I can change the plan when you tell me something specific. Try “I have soccer at 6 PM today,” “math is finished,” “move science to tomorrow,” “I only have 45 minutes tonight,” or “move everything next week.”';
 }
 function nextBestTask(cap){return state.tasks.filter(t=>!state.completed.includes(t.id)&&t.minutes>0).sort((a,b)=>taskScore(b,todayISO())-taskScore(a,todayISO())).find(t=>t.minutes<=cap)||state.tasks.filter(t=>!state.completed.includes(t.id)).sort((a,b)=>taskScore(b,todayISO())-taskScore(a,todayISO()))[0]}
+
+window.PAYMENT_LINK = ''; // Put your parent/guardian's public checkout link here.
+
+// Final click safety net: keeps navigation working even if an individual listener is missed.
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.nav-btn');
+  if(b) showView(b.dataset.view);
+  const jump=e.target.closest('[data-view-jump]');
+  if(jump) showView(jump.dataset.viewJump);
+});
 
 init();
