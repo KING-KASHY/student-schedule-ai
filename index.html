@@ -1,32 +1,7 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>StudentSchedule AI</title>
-<link rel="stylesheet" href="style.css?v=3">
-</head>
-<body>
-<div class="app">
-<aside class="sidebar">
-  <div class="brand">StudentSchedule <span>AI</span></div>
-  <button class="nav active" data-page="today">Today</button>
-  <button class="nav" data-page="calendar">Calendar</button>
-  <button class="nav" data-page="tasks">Tasks</button>
-  <button class="nav" data-page="week">Week</button>
-  <button class="nav" data-page="planner">Planner AI</button>
-  <button class="nav" data-page="settings">Settings</button>
-  <div class="trial"><b>3-Day Pro Trial</b><p id="trialText">Try all Pro planning features.</p><button id="trialBtn">Start Free Trial</button></div>
-</aside>
-<main>
-<header><div><h1 id="title">Today</h1><p id="subtitle">Your plan, without the guesswork.</p></div><button class="primary" id="quickAdd">+ Add task</button></header>
-<section id="page"></section>
-</main>
-</div>
-<div id="modal" class="modal hidden"><div class="modalbox"><h2>Add task</h2>
-<input id="taskName" placeholder="What do you need to do?">
-<div class="row"><input id="taskDue" type="date"><input id="taskMinutes" type="number" min="5" value="30" placeholder="Minutes"></div>
-<select id="taskPriority"><option value="3">High priority</option><option value="2" selected>Normal</option><option value="1">Low priority</option></select>
-<div class="actions"><button id="cancel">Cancel</button><button class="primary" id="saveTask">Add</button></div></div></div>
-<script src="app.js?v=3"></script>
-</body></html>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>StudentSchedule AI</title><link rel="stylesheet" href="style.css"></head><body>
+<div class="app"><aside><div class="brand"><b>StudentSchedule</b><small>AI planner</small></div>
+<button class="nav active" data-page="today">⌂ Today</button><button class="nav" data-page="calendar">▦ Calendar</button><button class="nav" data-page="tasks">✓ Tasks</button><button class="nav" data-page="week">▤ Week</button><button class="nav" data-page="planner">✦ Planner AI</button><button class="nav" data-page="assistant">◉ AI Assistant</button><button class="nav" data-page="settings">⚙ Settings</button>
+<div class="trial"><b>3-Day Pro Trial</b><p id="trialText">Try Pro free for 3 days.</p><button id="trialBtn">Start Free Trial</button></div></aside>
+<main><header><div><h1 id="title">Today</h1><p id="sub">Your plan, without the guesswork.</p></div><button id="add">+ Add task</button></header><section id="page"></section></main></div>
+<div id="modal" class="modal hidden"><div class="box"><h2>Add task</h2><input id="name" placeholder="Task name"><input id="due" type="date"><input id="mins" type="number" value="30" min="5" placeholder="Minutes"><select id="pri"><option value="3">High priority</option><option value="2">Normal priority</option><option value="1">Low priority</option></select><button id="save">Add task</button><button id="cancel">Cancel</button></div></div>
+<script src="app.js"></script></body></html>
