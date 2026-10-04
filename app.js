@@ -9,7 +9,7 @@ function todayPage(){let a=D.tasks.filter(x=>!x.done).sort((a,b)=>a.due.localeCo
 function tasksPage(){$('#page').innerHTML=`<div class=card><h2>All tasks</h2>${D.tasks.map(task).join('')}</div>`}
 function calendarPage(){let y=month.getFullYear(),m=month.getMonth(),start=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),s=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(x=>`<div class=dow>${x}</div>`).join('');for(let i=0;i<start;i++)s+='<div class=day></div>';for(let d=1;d<=days;d++){let z=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,ev=D.tasks.filter(x=>x.due==z&&!x.done).map(x=>x.name);s+=`<div class="day ${z==today()?'today':''}"><b>${d}</b>${ev.map(x=>`<div class=event>${esc(x)}</div>`).join('')}</div>`}$('#page').innerHTML=`<div class=card><div style="display:flex;justify-content:space-between;align-items:center"><button onclick="month.setMonth(month.getMonth()-1);render()">←</button><h2>${month.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</h2><button onclick="month.setMonth(month.getMonth()+1);render()">→</button></div><div class=calendar>${s}</div></div>`}
 function weekPage(){let s='';for(let i=0;i<7;i++){let d=new Date();d.setDate(d.getDate()+i);let z=iso(d),a=D.tasks.filter(x=>x.due==z&&!x.done);s+=`<div class=card><b>${d.toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'})}</b><p class=muted>${a.length?a.map(x=>esc(x.name)).join(' · '):'No tasks due'}</p></div>`}$('#page').innerHTML=s}
-function plannerPage(){$('#page').innerHTML=`<div class=card chat><div id=msgs class=messages><div class="msg bot">I only change your schedule. Tell me a real change like “add soccer at 6 PM,” “practice was cancelled,” “I finished science,” or “add 30 minutes of math tomorrow.”</div></div><div class=chips><button class=chip data-q="What should I do first?">What first?</button><button class=chip data-q="Practice was cancelled">Practice cancelled</button><button class=chip data-q="Add 30 minutes of math tomorrow">Add task</button></div><div class=chatrow><input id=pi placeholder="Tell me what changed..."><button id=ps>Send</button></div></div>`;$('#ps').onclick=sendPlanner;$('#pi').onkeydown=e=>e.key==='Enter'&&sendPlanner();document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{$('#pi').value=b.dataset.q;sendPlanner()})}
+function plannerPage(){$('#page').innerHTML=`<div class=card chat><div id=msgs class=messages><div class="msg bot">What changed in your schedule?</div></div><div class=chips><button class=chip data-q="What should I do first?">What first?</button><button class=chip data-q="Practice was cancelled">Practice cancelled</button><button class=chip data-q="Add 30 minutes of math tomorrow">Add task</button></div><div class=chatrow><input id="pi" type="text" autocomplete="off" spellcheck="true" tabindex="0" placeholder="Tell me what changed..."><button id=ps>Send</button></div></div>`;$('#ps').type='button';$('#ps').onclick=e=>{e.preventDefault();sendPlanner()};$('#pi').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();sendPlanner()}};$('#pi').onclick=e=>e.stopPropagation();$('#pi').onmousedown=e=>e.stopPropagation();setTimeout(()=>{const el=$('#pi');if(el){el.focus();el.selectionStart=el.value.length}},50);document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{$('#pi').value=b.dataset.q;sendPlanner()})}
 function addMsg(id,t,c){let b=$(id);b.insertAdjacentHTML('beforeend',`<div class="msg ${c}">${esc(t)}</div>`);b.scrollTop=b.scrollHeight}
 function sendPlanner(){let i=$('#pi'),q=i.value.trim();if(!q)return;addMsg('#msgs',q,'user');i.value='';addMsg('#msgs',plannerAnswer(q.toLowerCase()),'bot');save()}
 function cleanText(s){
@@ -149,12 +149,12 @@ function plannerAnswer(raw){
   }
 
   if(/\b(help|how do i|can you)\b/.test(q)){
-    return "Yes. You can talk normally — for example: “get rid of soccer practice,” “I finished math,” “move science to tomorrow,” “add 45 mins of history,” or “I’m slammed tonight.” I’ll interpret the request and update the plan when appropriate.";
+    return "Tell me what changed and I’ll take care of the schedule. You can say things like “get rid of soccer practice,” “I finished math,” “move science to tomorrow,” “add 45 mins of history,” or “I’m slammed tonight.”";
   }
 
-  return "I understand normal wording and common slang. Try telling me what changed in your day, such as “get rid of soccer practice,” “I’m done with math,” “move bio to tomorrow,” or “I only have 30 mins tonight.”";
+  return "Tell me what changed in your day, and I’ll update the plan. For example, you can say “get rid of soccer practice,” “I’m done with math,” “move bio to tomorrow,” or “I only have 30 mins tonight.”";
 }
-function assistantPage(){$('#page').innerHTML=`<div class=assistant><div class=card chat><div id=amsgs class=messages><div class="msg bot">I’m the general StudentSchedule AI assistant. I can help with school questions, studying, brainstorming, planning, writing, and everyday student problems. I’ll explain things step-by-step when useful and use your saved tasks when relevant.<br><br>This is a local assistant built into the free website, so it is not a full cloud model like ChatGPT and has no live web access.</div></div><div class=chips><button class=chip data-aq="Help me plan tonight">Plan tonight</button><button class=chip data-aq="Give me a study strategy">Study strategy</button><button class=chip data-aq="What should I work on first?">What first?</button></div><div class=chatrow><input id=ai placeholder="Ask me anything..."><button id=as>Send</button></div></div><div class=card><h2>Assistant style</h2><p>Clear, practical, calm, student-focused, and step-by-step when needed.</p><p class=muted>Planner AI is kept separate so this assistant can answer general questions without accidentally changing your calendar.</p></div></div>`;$('#as').onclick=sendAI;$('#ai').onkeydown=e=>e.key==='Enter'&&sendAI();document.querySelectorAll('[data-aq]').forEach(b=>b.onclick=()=>{$('#ai').value=b.dataset.aq;sendAI()})}
+function assistantPage(){$('#page').innerHTML=`<div class=assistant><div class=card chat><div id=amsgs class=messages><div class="msg bot">What can I help you with?</div></div><div class=chips><button class=chip data-aq="Help me plan tonight">Plan tonight</button><button class=chip data-aq="Give me a study strategy">Study strategy</button><button class=chip data-aq="What should I work on first?">What first?</button></div><div class=chatrow><input id="ai" type="text" autocomplete="off" spellcheck="true" tabindex="0" placeholder="Ask me anything..."><button id=as>Send</button></div></div><div class=card><h2>AI Assistant</h2><p class=muted>Ask a question, explain a problem, or tell me what you need to get done.</p></div></div>`;$('#as').type='button';$('#as').onclick=e=>{e.preventDefault();sendAI()};$('#ai').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();sendAI()}};$('#ai').onclick=e=>e.stopPropagation();$('#ai').onmousedown=e=>e.stopPropagation();setTimeout(()=>{const el=$('#ai');if(el){el.focus();el.selectionStart=el.value.length}},50);document.querySelectorAll('[data-aq]').forEach(b=>b.onclick=()=>{$('#ai').value=b.dataset.aq;sendAI()})}
 function sendAI(){let i=$('#ai'),q=i.value.trim();if(!q)return;addMsg('#amsgs',q,'user');i.value='';addMsg('#amsgs',aiAnswer(q),'bot')}
 function aiAnswer(q){
   const raw=q.trim(), l=cleanText(raw);
@@ -170,6 +170,26 @@ function aiAnswer(q){
     return "For studying, start with the topic you are least confident about. Do a few problems without notes, check your mistakes, write down what caused each mistake, and retry a similar problem. If you tell me the subject and topic, I can work through it with you.";
   if(/\b(schedule|homework|assignment|task)\b/.test(l))
     return "I can help organize it. Tell me what you have, when it is due, and roughly how long each thing takes. You don't need perfect wording.";
-  return "I can work with normal language, slang, typos, and incomplete sentences. Tell me the goal or problem in your own words, and I'll help you work through it.";
+  return "Tell me what you need in your own words, and we'll work through it.";
 }
 document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{page=b.dataset.page;render()});$('#add').onclick=()=>{$('#modal').classList.remove('hidden');$('#due').value=today()};$('#cancel').onclick=()=>$('#modal').classList.add('hidden');$('#save').onclick=()=>{let n=$('#name').value.trim();if(!n)return;D.tasks.push({id:Date.now(),name:n,due:$('#due').value||today(),mins:+$('#mins').value||30,p:+$('#pri').value,done:false});save();$('#modal').classList.add('hidden');render()};$('#trialBtn').onclick=()=>{if(!D.trial){D.trial=Date.now();save();$('#trialText').textContent='Pro trial active for 3 days.';$('#trialBtn').textContent='Trial Active'}else alert('After the 3-day trial, connect a parent/guardian payment checkout for Pro.')};render();
+
+/* Reliable AI input bridge */
+document.addEventListener("DOMContentLoaded", function () {
+  ["pi","ai"].forEach(function(id) {
+    var el=document.getElementById(id);
+    if(!el) return;
+    el.disabled=false;
+    el.readOnly=false;
+    el.removeAttribute("disabled");
+    el.removeAttribute("readonly");
+    el.style.pointerEvents="auto";
+    el.addEventListener("keydown", function(e) {
+      if(e.key==="Enter" && !e.shiftKey) {
+        e.preventDefault();
+        var btn = id==="pi" ? document.getElementById("piSend") : document.getElementById("aiSend");
+        if(btn) btn.click();
+      }
+    });
+  });
+});
