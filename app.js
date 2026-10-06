@@ -1,195 +1,148 @@
-const $=s=>document.querySelector(s), iso=d=>d.toISOString().slice(0,10), today=()=>iso(new Date()), tomorrow=()=>{let d=new Date();d.setDate(d.getDate()+1);return iso(d)};
-let D=JSON.parse(localStorage.getItem('ssa')||'null')||{tasks:[{id:1,name:'Math homework',due:today(),mins:45,p:3,done:false},{id:2,name:'Science reading',due:today(),mins:30,p:2,done:false}],commit:[],trial:null};
-const save=()=>localStorage.setItem('ssa',JSON.stringify(D)), esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let page='today', month=new Date(), titles={today:['Today','Your plan, without the guesswork.'],calendar:['Calendar','Your month at a glance.'],tasks:['Tasks','Assignments and deadlines.'],week:['Week','Your next seven days.'],planner:['Planner AI','Only for changing your schedule.'],assistant:['AI Assistant','A general student assistant for school, planning, and everyday questions.'],settings:['Settings','Your preferences.']};
-function task(x){return `<div class="task ${x.done?'completed':''}"><div><b class="${x.done?'done-name':''}">${esc(x.name)}</b><div class=muted>${x.due} · ${x.mins} min · ${x.p==3?'High':x.p==2?'Normal':'Low'}</div></div><button class="${x.done?'complete-green':''}" onclick="toggle(${x.id})">${x.done?'✓ Complete':'Complete'}</button></div>`}
-function toggle(id){let x=D.tasks.find(x=>x.id==id);x.done=!x.done;save();render()}
-function render(){let t=titles[page];$('#title').textContent=t[0];$('#sub').textContent=t[1];document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.page==page));if(page==='today')todayPage();if(page==='tasks')tasksPage();if(page==='calendar')calendarPage();if(page==='week')weekPage();if(page==='planner')plannerPage();if(page==='assistant')assistantPage();if(page==='settings')settingsPage()}
-function todayPage(){let a=D.tasks.filter(x=>!x.done).sort((a,b)=>a.due.localeCompare(b.due)||b.p-a.p);$('#page').innerHTML=`<div class=grid><div class=card><div class=muted>Open tasks</div><div class=stat>${a.length}</div></div><div class=card><div class=muted>Due today</div><div class=stat>${a.filter(x=>x.due==today()).length}</div></div><div class=card><div class=muted>Workload</div><div class=stat>${a.reduce((n,x)=>n+x.mins,0)}m</div></div></div><div class=card><h2>Priorities</h2>${a.map(task).join('')||'<p class=muted>You are caught up.</p>'}</div>`}
-function tasksPage(){$('#page').innerHTML=`<div class=card><h2>All tasks</h2>${D.tasks.map(task).join('')}</div>`}
-function calendarPage(){let y=month.getFullYear(),m=month.getMonth(),start=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),s=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(x=>`<div class=dow>${x}</div>`).join('');for(let i=0;i<start;i++)s+='<div class=day></div>';for(let d=1;d<=days;d++){let z=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,ev=D.tasks.filter(x=>x.due==z&&!x.done).map(x=>x.name);s+=`<div class="day ${z==today()?'today':''}"><b>${d}</b>${ev.map(x=>`<div class=event>${esc(x)}</div>`).join('')}</div>`}$('#page').innerHTML=`<div class=card><div style="display:flex;justify-content:space-between;align-items:center"><button onclick="month.setMonth(month.getMonth()-1);render()">←</button><h2>${month.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</h2><button onclick="month.setMonth(month.getMonth()+1);render()">→</button></div><div class=calendar>${s}</div></div>`}
-function weekPage(){let s='';for(let i=0;i<7;i++){let d=new Date();d.setDate(d.getDate()+i);let z=iso(d),a=D.tasks.filter(x=>x.due==z&&!x.done);s+=`<div class=card><b>${d.toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'})}</b><p class=muted>${a.length?a.map(x=>esc(x.name)).join(' · '):'No tasks due'}</p></div>`}$('#page').innerHTML=s}
-function plannerPage(){$('#page').innerHTML=`<div class=card chat><div id=msgs class=messages><div class="msg bot">What changed in your schedule?</div></div><div class=chips><button class=chip data-q="What should I do first?">What first?</button><button class=chip data-q="Practice was cancelled">Practice cancelled</button><button class=chip data-q="Add 30 minutes of math tomorrow">Add task</button></div><div class=chatrow><input id="pi" type="text" autocomplete="off" spellcheck="true" tabindex="0" placeholder="Tell me what changed..."><button id=ps>Send</button></div></div>`;$('#ps').type='button';$('#ps').onclick=e=>{e.preventDefault();sendPlanner()};$('#pi').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();sendPlanner()}};$('#pi').onclick=e=>e.stopPropagation();$('#pi').onmousedown=e=>e.stopPropagation();setTimeout(()=>{const el=$('#pi');if(el){el.focus();el.selectionStart=el.value.length}},50);document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{$('#pi').value=b.dataset.q;sendPlanner()})}
-function addMsg(id,t,c){let b=$(id);b.insertAdjacentHTML('beforeend',`<div class="msg ${c}">${esc(t)}</div>`);b.scrollTop=b.scrollHeight}
-function sendPlanner(){let i=$('#pi'),q=i.value.trim();if(!q)return;addMsg('#msgs',q,'user');i.value='';addMsg('#msgs',plannerAnswer(q.toLowerCase()),'bot');save()}
-function cleanText(s){
-  return s.toLowerCase()
-    .replace(/[’']/g,"'")
-    .replace(/\bpls\b/g,"please")
-    .replace(/\bplz\b/g,"please")
-    .replace(/\btho\b/g,"though")
-    .replace(/\btho\b/g,"though")
-    .replace(/\btmrw\b/g,"tomorrow")
-    .replace(/\btom\b/g,"tomorrow")
-    .replace(/\btonite\b/g,"tonight")
-    .replace(/\btonight\b/g,"tonight")
-    .replace(/\s+/g," ").trim();
-}
-function findBestTask(q){
-  const words=cleanText(q).split(/[^a-z0-9]+/).filter(w=>w.length>2);
-  let best=null,bestScore=0;
-  D.tasks.forEach(x=>{
-    const n=cleanText(x.name);
-    let score=0;
-    words.forEach(w=>{
-      if(n.includes(w)) score += w.length>=5 ? 3 : 1;
-    });
-    if(score>bestScore){bestScore=score;best=x;}
-  });
-  return best;
-}
-function findBestCommitment(q){
-  const words=cleanText(q).split(/[^a-z0-9]+/).filter(w=>w.length>2);
-  let best=null,bestScore=0;
-  D.commit.forEach(x=>{
-    const n=cleanText(x.name||"");
-    let score=0;
-    words.forEach(w=>{if(n.includes(w))score+=w.length>=5?3:1});
-    if(score>bestScore){bestScore=score;best=x;}
-  });
-  return best;
-}
-function parseMinutes(q){
-  let m=q.match(/(\d+)\s*(?:hours?|hrs?)\s*(?:and\s*)?(\d+)?\s*(?:minutes?|mins?)?/);
-  if(m)return (+m[1]*60)+(+m[2]||0);
-  m=q.match(/(\d+)\s*(?:minutes?|mins?)/);
-  return m?+m[1]:null;
-}
-function prettyName(q){
-  let s=q.replace(/\b(add|put|schedule|create|make|a|an|task|for|me|please|pls|tomorrow|today|tonight)\b/gi," ")
-    .replace(/\s+/g," ").trim();
-  return s.charAt(0).toUpperCase()+s.slice(1);
-}
-function plannerAnswer(raw){
-  const q=cleanText(raw);
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const store="studentScheduleV5";
+let D=JSON.parse(localStorage.getItem(store)||"null")||{account:null,trialStart:null,tasks:[],blocks:[],settings:{start:"16:00",end:"22:00",buffer:10}};
+const save=()=>localStorage.setItem(store,JSON.stringify(D));
+const today=()=>new Date().toISOString().slice(0,10);
+const uid=()=>Date.now()+Math.floor(Math.random()*100000);
+const esc=x=>String(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pLabel=p=>["","Low","Normal","Important","High","Critical"][p]||"Normal";
+const pClass=p=>p>=5?"p5":p>=4?"p4":p>=3?"p3":"";
+const dateText=k=>new Date(k+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
 
-  // Remove/cancel/delete commitments or tasks using loose natural language.
-  const removeIntent=/\b(get rid of|remove|delete|cancel|drop|take off|take out|no more|i don't have|dont have|don't have|dnt have)\b/.test(q);
-  if(removeIntent){
-    const isSoccer=/\b(soccer|football|practice|training|game)\b/.test(q);
-    const c=findBestCommitment(q);
-    const t=findBestTask(q);
+function tasksFor(day){return D.tasks.filter(t=>t.due===day)}
+function taskHTML(t){
+  return `<div class="task ${t.done?"done":""}">
+    <button class="check" data-complete="${t.id}" aria-label="Complete task"></button>
+    <div><div class="task-name"><b>${esc(t.name)}</b> ${t.fixed?'<span class="badge fixed">Fixed</span>':''}</div>
+    <div class="task-meta">${t.minutes} min · due ${dateText(t.due)} · <span class="badge ${pClass(t.priority)}">${pLabel(t.priority)}</span>${t.preferred!=="any"?` · ${t.preferred}`:""}</div></div>
+    <button class="danger" data-delete="${t.id}">Delete</button>
+  </div>`;
+}
+function scoreTask(t){
+  const days=Math.max(0,Math.ceil((new Date(t.due+"T23:59:59")-new Date())/86400000));
+  return t.priority*100 + Math.max(0,20-days*4) + (t.fixed?80:0);
+}
+function toMinutes(v){let[a,b]=v.split(":").map(Number);return a*60+b}
+function clock(v){let h=Math.floor(v/60),m=v%60,ap=h>=12?"PM":"AM";h=h%12||12;return `${h}:${String(m).padStart(2,"0")} ${ap}`}
+function parseTime(v){return toMinutes(v)}
+function overlaps(a,b,c,d){return a<d&&b>c}
 
-    if(isSoccer && D.commit.length){
-      const matches=D.commit.filter(x=>/\b(soccer|football|practice|training|game)\b/i.test(x.name||""));
-      if(matches.length){
-        matches.forEach(x=>D.commit=D.commit.filter(c=>c!==x));
-        save();
-        return `Done — I removed ${matches.map(x=>x.name).join(", ")} from your commitments. Your schedule can now use that time.`;
+function renderToday(){
+  const a=tasksFor(today()), done=a.filter(t=>t.done).length, mins=a.filter(t=>!t.done).reduce((n,t)=>n+t.minutes,0), top=[...a].filter(t=>!t.done).sort((x,y)=>scoreTask(y)-scoreTask(x))[0];
+  $("#view").innerHTML=`<div class="hero"><h2>${D.account?`${esc(D.account.name)}’s day`:"Today"}</h2>
+    <p>Your schedule is based on what matters most, how long each task takes, and the time you actually have.</p>
+    <div class="hero-grid"><div class="hero-stat"><small>Tasks</small><b>${a.length}</b></div><div class="hero-stat"><small>Work left</small><b>${mins} min</b></div><div class="hero-stat"><small>Next priority</small><b>${top?pLabel(top.priority):"—"}</b></div></div>
+  </div><div class="card"><div class="section-title"><h2>Today's tasks</h2><button class="secondary" id="todayBuild">Rebuild day</button></div>
+  ${a.length?a.sort((x,y)=>y.priority-x.priority||x.due.localeCompare(y.due)).map(taskHTML).join(""):'<div class="empty">No tasks yet. Add what you need to get done.</div>'}</div>
+  <div class="card" style="margin-top:16px"><div class="section-title"><h2>Generated plan</h2><span class="badge">Priority-based</span></div><div id="todayPlan">${renderGenerated()}</div></div>`;
+}
+function renderTasks(){
+  const a=[...D.tasks].sort((x,y)=>x.done-y.done||x.due.localeCompare(y.due)||y.priority-x.priority);
+  $("#view").innerHTML=`<div class="card"><div class="section-title"><h2>All tasks</h2><button class="primary" id="taskAdd2">+ Add task</button></div>${a.length?a.map(taskHTML).join(""):'<div class="empty">No tasks yet.</div>'}</div>`;
+}
+function renderBuilder(){
+  const blocks=D.blocks.filter(b=>b.day===today());
+  $("#view").innerHTML=`<div class="builder">
+    <div class="card controls">
+      <div><h2>Build your day</h2><p class="muted">Set the limits first. Then the planner fits your work inside them.</p></div>
+      <div class="row"><label class="label">Start<input id="dayStart" type="time" value="${D.settings.start}"></label><label class="label">End<input id="dayEnd" type="time" value="${D.settings.end}"></label></div>
+      <label class="label">Break between tasks<select id="buffer"><option value="0">0 min</option><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option></select></label>
+      <div><b>Unavailable today</b><div class="availability" style="margin-top:8px">
+        ${blocks.length?blocks.map(b=>`<div class="block-row"><span>${clock(b.start)}–${clock(b.end)} · ${esc(b.label)}</span><button class="danger" data-block-del="${b.id}">Remove</button></div>`).join(""):'<div class="notice">Nothing blocked.</div>'}
+      </div></div>
+      <button class="secondary" id="addBlock">+ Add unavailable time</button>
+      <button class="primary" id="generate">Generate schedule</button>
+      <div class="notice">Tasks are ranked by priority and deadline. Fixed commitments stay fixed. Unavailable periods are skipped.</div>
+    </div>
+    <div class="card"><div class="section-title"><h2>Generated schedule</h2><span class="badge">Built around your availability</span></div><div>${renderGenerated()}</div></div>
+  </div>`;
+  $("#buffer").value=D.settings.buffer;
+}
+function generatePlan(){
+  D.settings.start=$("#dayStart")?.value||D.settings.start;D.settings.end=$("#dayEnd")?.value||D.settings.end;D.settings.buffer=Number($("#buffer")?.value||D.settings.buffer);
+  const date=today(), blocks=D.blocks.filter(b=>b.day===date), start=toMinutes(D.settings.start), end=toMinutes(D.settings.end), buffer=D.settings.buffer;
+  let fixed=tasksFor(date).filter(t=>t.fixed&&!t.done).map(t=>({...t}));
+  let normal=tasksFor(date).filter(t=>!t.fixed&&!t.done).sort((a,b)=>scoreTask(b)-scoreTask(a));
+  let placements=[];
+  const ranges=blocks.map(b=>[parseTime(b.start),parseTime(b.end)]).sort((a,b)=>a[0]-b[0]);
+  const isBlocked=(s,e)=>ranges.some(r=>overlaps(s,e,r[0],r[1]));
+  function nextOpen(t){
+    let x=t;
+    for(const r of ranges){if(x<r[1]&&x>=r[0])x=r[1]}
+    return x;
+  }
+  // Place fixed tasks first at their existing preferred slot when a fixed time exists.
+  // In this browser-only version, fixed commitments without a fixed clock time are
+  // treated as high-priority tasks that cannot be displaced once scheduled.
+  let cursor=start;
+  for(const t of fixed){
+    cursor=nextOpen(cursor);
+    if(cursor+t.minutes<=end&&!isBlocked(cursor,cursor+t.minutes)){placements.push({task:t,start:cursor,end:cursor+t.minutes,fixed:true});cursor+=t.minutes+buffer}
+  }
+  for(const t of normal){
+    let p=nextOpen(cursor), placed=false;
+    while(p+t.minutes<=end){
+      if(!isBlocked(p,p+t.minutes)){
+        placements.push({task:t,start:p,end:p+t.minutes});cursor=p+t.minutes+buffer;placed=true;break;
       }
-    }
-    if(c){
-      D.commit=D.commit.filter(x=>x!==c);
-      save();
-      return `Done — I removed ${c.name} from your commitments.`;
-    }
-    if(t){
-      D.tasks=D.tasks.filter(x=>x!==t);
-      save();
-      return `Done — I removed the task “${t.name}.”`;
-    }
-    return "I understand that you want something removed. I just need the name of the practice, event, or task so I don't remove the wrong thing.";
-  }
-
-  // Finish/complete/mark done.
-  if(/\b(finished|finish|done with|completed|complete|mark.*done|did)\b/.test(q)){
-    const t=findBestTask(q);
-    if(t){
-      t.done=true; save();
-      return `Done — I marked “${t.name}” complete.`;
+      p=nextOpen(p+15);
+      if(p>=end)break;
     }
   }
-
-  // Add a commitment such as soccer practice at 6 PM.
-  const addCommit=/\b(add|put|schedule|i have|got)\b/.test(q) &&
-    /\b(soccer|practice|training|game|club|appointment|doctor|meeting|class)\b/.test(q);
-  if(addCommit){
-    const timeMatch=q.match(/\b(?:at|@)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/);
-    const nameMatch=q.match(/\b(soccer|football|practice|training|game|club|appointment|doctor|meeting|class)(?:\s+practice)?\b/);
-    const name=nameMatch ? (nameMatch[0].replace(/\s+/g," ")) : prettyName(q);
-    const time=timeMatch ? `${timeMatch[1]}${timeMatch[2]?":"+timeMatch[2]:""}${timeMatch[3]?" "+timeMatch[3].toUpperCase():""}` : "unspecified time";
-    D.commit.push({name,time});
-    save();
-    return `Added ${name} at ${time}. I’ll treat it as a fixed commitment when planning around your tasks.`;
-  }
-
-  // Add a task in many forms: "add math tomorrow", "I need to do bio for 45 mins".
-  const addTask=/\b(add|put|create|make|need to|i have to|gotta|have)\b/.test(q);
-  if(addTask){
-    const mins=parseMinutes(q)||30;
-    const due=/\btomorrow\b/.test(q)?tomorrow():/\b(today|tonight)\b/.test(q)?today():today();
-    let name=prettyName(q);
-    name=name.replace(/\bfor\s+\d+\s*(?:minutes?|mins?|hours?|hrs?).*$/i,"").trim();
-    if(name && !/^(please|something|it)$/i.test(name)){
-      D.tasks.push({id:Date.now(),name,due,mins,p:2,done:false});
-      save();
-      return `Added “${name}” for ${mins} minutes ${due===tomorrow()?"tomorrow":"today"}.`;
-    }
-  }
-
-  // "move X to tomorrow"
-  if(/\b(move|push|shift)\b/.test(q) && /\btomorrow\b/.test(q)){
-    const t=findBestTask(q);
-    if(t){t.due=tomorrow();save();return `Done — I moved “${t.name}” to tomorrow.`;}
-  }
-
-  // Overloaded/busy language.
-  if(/\btoo much|overwhelmed|swamped|packed|busy|no time\b/.test(q)){
-    const open=D.tasks.filter(x=>!x.done).sort((a,b)=>a.due.localeCompare(b.due)||b.p-a.p);
-    const total=open.reduce((n,x)=>n+x.mins,0);
-    return open.length
-      ? `You have ${open.length} unfinished task${open.length===1?"":"s"} totaling about ${total} minutes. Start with “${open[0].name}.” If you tell me how much time you have tonight, I can break the work into smaller blocks.`
-      : "You don't have any unfinished tasks right now.";
-  }
-
-  // "what first", "what should I do"
-  if(/\b(what first|what should i do|where do i start|what do i do first|which task)\b/.test(q)){
-    const x=D.tasks.filter(x=>!x.done).sort((a,b)=>a.due.localeCompare(b.due)||b.p-a.p)[0];
-    return x?`Start with “${x.name}.” It is due ${x.due} and takes about ${x.mins} minutes.`:"You have no unfinished tasks.";
-  }
-
-  if(/\b(help|how do i|can you)\b/.test(q)){
-    return "Tell me what changed and I’ll take care of the schedule. You can say things like “get rid of soccer practice,” “I finished math,” “move science to tomorrow,” “add 45 mins of history,” or “I’m slammed tonight.”";
-  }
-
-  return "Tell me what changed in your day, and I’ll update the plan. For example, you can say “get rid of soccer practice,” “I’m done with math,” “move bio to tomorrow,” or “I only have 30 mins tonight.”";
+  D.generated={day:date,items:placements,totalMinutes:placements.reduce((n,x)=>n+x.task.minutes,0)};
+  save();
 }
-function assistantPage(){$('#page').innerHTML=`<div class=assistant><div class=card chat><div id=amsgs class=messages><div class="msg bot">What can I help you with?</div></div><div class=chips><button class=chip data-aq="Help me plan tonight">Plan tonight</button><button class=chip data-aq="Give me a study strategy">Study strategy</button><button class=chip data-aq="What should I work on first?">What first?</button></div><div class=chatrow><input id="ai" type="text" autocomplete="off" spellcheck="true" tabindex="0" placeholder="Ask me anything..."><button id=as>Send</button></div></div><div class=card><h2>AI Assistant</h2><p class=muted>Ask a question, explain a problem, or tell me what you need to get done.</p></div></div>`;$('#as').type='button';$('#as').onclick=e=>{e.preventDefault();sendAI()};$('#ai').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();sendAI()}};$('#ai').onclick=e=>e.stopPropagation();$('#ai').onmousedown=e=>e.stopPropagation();setTimeout(()=>{const el=$('#ai');if(el){el.focus();el.selectionStart=el.value.length}},50);document.querySelectorAll('[data-aq]').forEach(b=>b.onclick=()=>{$('#ai').value=b.dataset.aq;sendAI()})}
-function sendAI(){let i=$('#ai'),q=i.value.trim();if(!q)return;addMsg('#amsgs',q,'user');i.value='';addMsg('#amsgs',aiAnswer(q),'bot')}
-function aiAnswer(q){
-  const raw=q.trim(), l=cleanText(raw);
-  if(!raw)return "Tell me what you need help with.";
-  if(/\b(hi|hey|hello|yo|sup)\b/.test(l))return "Hey. What are you working on? You can type normally — slang and imperfect wording are fine.";
-  if(/\b(who are you|what are you)\b/.test(l))return "I'm StudentSchedule's general AI Assistant. I'm built to explain things clearly, help with school and planning, and understand normal student wording. Planner AI is the separate chat that changes your schedule.";
-  if(/\b(plan tonight|what should i do|what first|where do i start)\b/.test(l)){
-    const open=D.tasks.filter(x=>!x.done).sort((a,b)=>a.due.localeCompare(b.due)||b.p-a.p);
-    if(!open.length)return "You're caught up on your saved tasks.";
-    return `Based on your saved plan, start with “${open[0].name}.” It is due ${open[0].due} and takes about ${open[0].mins} minutes. If you tell me how much time you have, I can help split it into blocks.`;
-  }
-  if(/\b(study|studying|test|exam|quiz)\b/.test(l))
-    return "For studying, start with the topic you are least confident about. Do a few problems without notes, check your mistakes, write down what caused each mistake, and retry a similar problem. If you tell me the subject and topic, I can work through it with you.";
-  if(/\b(schedule|homework|assignment|task)\b/.test(l))
-    return "I can help organize it. Tell me what you have, when it is due, and roughly how long each thing takes. You don't need perfect wording.";
-  return "Tell me what you need in your own words, and we'll work through it.";
+function renderGenerated(){
+  const g=D.generated?.day===today()?D.generated:null;
+  if(!g)return '<div class="empty">Generate a schedule to see where each task fits.</div>';
+  if(!g.items.length)return '<div class="empty">Nothing fits inside the available time. Add more time or reduce the workload.</div>';
+  return `<div class="timeline">${g.items.map(x=>`<div class="slot"><div class="slot-time">${clock(x.start)}<br>${clock(x.end)}</div><div class="slot-box ${x.fixed?"fixed":""}"><b>${esc(x.task.name)}</b><small>${x.task.minutes} min · ${pLabel(x.task.priority)} priority${x.fixed?" · fixed":""}</small></div></div>`).join("")}</div>`;
 }
-document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{page=b.dataset.page;render()});$('#add').onclick=()=>{$('#modal').classList.remove('hidden');$('#due').value=today()};$('#cancel').onclick=()=>$('#modal').classList.add('hidden');$('#save').onclick=()=>{let n=$('#name').value.trim();if(!n)return;D.tasks.push({id:Date.now(),name:n,due:$('#due').value||today(),mins:+$('#mins').value||30,p:+$('#pri').value,done:false});save();$('#modal').classList.add('hidden');render()};$('#trialBtn').onclick=()=>{if(!D.trial){D.trial=Date.now();save();$('#trialText').textContent='Pro trial active for 3 days.';$('#trialBtn').textContent='Trial Active'}else alert('After the 3-day trial, connect a parent/guardian payment checkout for Pro.')};render();
-
-/* Reliable AI input bridge */
-document.addEventListener("DOMContentLoaded", function () {
-  ["pi","ai"].forEach(function(id) {
-    var el=document.getElementById(id);
-    if(!el) return;
-    el.disabled=false;
-    el.readOnly=false;
-    el.removeAttribute("disabled");
-    el.removeAttribute("readonly");
-    el.style.pointerEvents="auto";
-    el.addEventListener("keydown", function(e) {
-      if(e.key==="Enter" && !e.shiftKey) {
-        e.preventDefault();
-        var btn = id==="pi" ? document.getElementById("piSend") : document.getElementById("aiSend");
-        if(btn) btn.click();
-      }
-    });
-  });
+function renderCalendar(){
+  let cells="";
+  for(let i=0;i<7;i++){let d=new Date();d.setDate(d.getDate()-d.getDay()+i);let k=d.toISOString().slice(0,10);
+    cells+=`<div class="day ${k===today()?"today":""}"><div class="dayhead">${d.toLocaleDateString(undefined,{weekday:"short"})}</div><div class="date">${d.getDate()}</div>${tasksFor(k).map(t=>`<div class="event ${t.done?"done":""}">${esc(t.name)} · ${t.minutes}m</div>`).join("")}</div>`;
+  }
+  $("#view").innerHTML=`<div class="card"><h2>Calendar</h2><p class="muted">Your next seven days.</p><div class="calendar">${cells}</div></div>`;
+}
+function renderWeek(){
+  let s="";
+  for(let i=0;i<7;i++){let d=new Date();d.setDate(d.getDate()+i);let k=d.toISOString().slice(0,10);let a=tasksFor(k).sort((x,y)=>y.priority-x.priority);
+    s+=`<div class="slot"><div class="slot-time">${dateText(k)}</div><div>${a.length?a.map(taskHTML).join(""):'<div class="notice">No tasks</div>'}</div></div>`;
+  }
+  $("#view").innerHTML=`<div class="card"><h2>Next 7 days</h2><div class="timeline">${s}</div></div>`;
+}
+function renderPricing(){
+  const active=D.trialStart&&(Date.now()-D.trialStart<259200000), daysLeft=active?Math.ceil((259200000-(Date.now()-D.trialStart))/86400000):0;
+  $("#view").innerHTML=`<div class="pricing-grid">
+    <div class="card price"><h2>Free</h2><div class="amount">$0</div><p class="muted">Core planning.</p><ul><li>Tasks and deadlines</li><li>Calendar</li><li>Manual organization</li></ul><button class="secondary" disabled>Current plan</button></div>
+    <div class="card price pro"><span class="badge">${active?`${daysLeft} day${daysLeft===1?"":"s"} left`:"Pro"}</span><h2>Pro</h2><div class="amount">$4.99<small>/month</small></div><p class="muted">Automatic schedule building.</p><ul><li>Priority + deadline scheduling</li><li>Unavailable-time planning</li><li>Automatic daily schedule</li><li>Workload-aware planning</li><li>Advanced weekly planning</li></ul><button class="primary" id="pricingUpgrade">${active?"Pro trial active":"Start 3-day free trial"}</button></div>
+  </div>`;
+}
+function renderSettings(){
+  $("#view").innerHTML=`<div class="card"><h2>Settings</h2><p class="muted">${esc(D.account.email)}</p><div class="settings-grid">
+  <label>Default start<input id="setStart" type="time" value="${D.settings.start}"></label><label>Default end<input id="setEnd" type="time" value="${D.settings.end}"></label>
+  </div><br><button class="primary" id="saveSettings">Save settings</button></div>`;
+}
+const meta={today:["Today","Your day, organized around what matters most."],builder:["Schedule Builder","Set tasks, time needed, priorities, deadlines, and unavailable periods."],tasks:["Tasks","Everything you need to finish."],calendar:["Calendar","Your workload across the week."],week:["Week","The next seven days at a glance."],pricing:["Pro & Pricing","Start with a 3-day Pro trial, then choose your plan."],settings:["Settings","Account and scheduling preferences."]};
+function render(v="today"){$("#pageTitle").textContent=meta[v][0];$("#pageSub").textContent=meta[v][1];$$(".nav").forEach(b=>b.classList.toggle("active",b.dataset.view===v));({today:renderToday,builder:renderBuilder,tasks:renderTasks,calendar:renderCalendar,week:renderWeek,pricing:renderPricing,settings:renderSettings}[v])();window.currentView=v}
+function openModal(){$("#taskModal").classList.remove("hidden");$("#taskDue").value=today();$("#taskName").focus()}function closeModal(){$("#taskModal").classList.add("hidden")}
+function boot(){if(!D.account){$("#authGate").classList.remove("hidden");return}$("#authGate").classList.add("hidden");$("#app").classList.remove("hidden");$("#accountName").textContent=D.account.name;updateTrial();render("today")}
+function updateTrial(){const active=D.trialStart&&(Date.now()-D.trialStart<259200000);$("#trialStatus").textContent=active?"3-day Pro trial active":"Free plan"}
+$("#signupForm").addEventListener("submit",e=>{e.preventDefault();D.account={name:$("#nameInput").value.trim(),email:$("#emailInput").value.trim()};D.trialStart=Date.now();save();boot()});
+$("#landingPricing").addEventListener("click",()=>alert("Free: $0/month. Pro: $4.99/month after a 3-day free trial."));
+$("#quickAdd").addEventListener("click",openModal);$("#quickBuild").addEventListener("click",()=>render("builder"));$("#closeTask").addEventListener("click",closeModal);
+$("#taskForm").addEventListener("submit",e=>{e.preventDefault();D.tasks.push({id:uid(),name:$("#taskName").value.trim(),minutes:Number($("#taskMinutes").value),priority:Number($("#taskPriority").value),due:$("#taskDue").value||today(),preferred:$("#taskPreferred").value,fixed:$("#taskFixed").checked,done:false});save();closeModal();render("tasks")});
+document.addEventListener("click",e=>{
+  const n=e.target.closest(".nav");if(n){render(n.dataset.view);return}
+  if(e.target.id==="taskAdd2"){openModal();return}
+  if(e.target.id==="todayBuild"){render("builder");return}
+  if(e.target.id==="generate"){generatePlan();render("builder");return}
+  if(e.target.id==="addBlock"){let start=prompt("Start time, for example 18:00");let end=prompt("End time, for example 19:30");if(start&&end){let label=prompt("What is this time for?","Soccer practice")||"Unavailable";D.blocks.push({id:uid(),day:today(),start,end,label});save();render("builder")}return}
+  if(e.target.dataset.blockDel){D.blocks=D.blocks.filter(b=>b.id!=e.target.dataset.blockDel);save();render("builder");return}
+  if(e.target.dataset.complete){let t=D.tasks.find(x=>x.id==e.target.dataset.complete);if(t){t.done=!t.done;save();render(window.currentView||"today")}return}
+  if(e.target.dataset.delete){D.tasks=D.tasks.filter(t=>t.id!=e.target.dataset.delete);save();render(window.currentView||"tasks");return}
+  if(e.target.id==="saveSettings"){D.settings.start=$("#setStart").value;D.settings.end=$("#setEnd").value;save();render("builder");return}
+  if(e.target.id==="pricingUpgrade")alert("Your trial is free. Any real Pro purchase should use a parent/guardian checkout account."); 
 });
+boot();
